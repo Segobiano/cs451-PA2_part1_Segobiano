@@ -45,7 +45,7 @@ double deltaz;
 //this defines the size of the lattice
 extern unsigned int lattice_nx, lattice_ny, lattice_nz;
 extern vector<Point3d> FFD_lattice; //This stores all lattice nodes, FFD_lattice has size = (lattice_nx X lattice_ny X lattice_nz)
-extern vector<Point3d> FFD_parameterization; //This stores all parameterized coordinates of all vertices from the model
+extern vector<vector<double>> FFD_parameterization; //This stores all parameterized coordinates of all vertices from the model
                                              //FFD_parameterization has size = models.front().v_size
 
 //-----------------------------------------------------------------------------
@@ -340,7 +340,9 @@ void Mouse(int button, int state, int x, int y){
 void Motion(int x, int y)
 {
 	//only if you have a selected node
+	int sizeN = lattice_nx*lattice_ny*lattice_nz;
 	if (Selectedx != -1 && Selectedy != -1 && Selectedz != -1){
+		
 		GLdouble* modelmax = new GLdouble[16];
 		GLdouble* project = new GLdouble[16];
 		GLint* view = new GLint[4];
@@ -358,9 +360,36 @@ void Motion(int x, int y)
 		//set the nodes new location
 		BBmatrix[Selectedz][Selectedy][Selectedx] = tempPoint;
 		
-	}
+		for (int p = 0; p < FFD_parameterization.size(); p++){
+			int ccount = 0;
+		}
+		model& m = models.front();
+		for (unsigned int z = 0; z < m.v_size; z++){
+			int ccounter = 0;
+			double outtempx = 0;
+			double outtempy = 0;
+			double outtempz = 0;
+			//datastructure of lattice
+			for (int i = 0; i < BBmatrix.size(); i++){//z
+				for (int j = 0; j < BBmatrix[0].size(); j++){//y
+					for (int h = 0; h < BBmatrix[0][0].size(); h++){//x
+						outtempx += BBmatrix[i][j][h][0] * FFD_parameterization[z][ccounter];
+						outtempy += BBmatrix[i][j][h][1] * FFD_parameterization[z][ccounter];
+						outtempz += BBmatrix[i][j][h][2] * FFD_parameterization[z][ccounter];
 
-	model& m = models.front();
+						m.vertices[z].p[0] = outtempx;
+						m.vertices[z].p[1] = outtempy;
+						m.vertices[z].p[2] = outtempz;
+						//counter steps through the FFD_paramere inner array of the vertices 
+						ccounter++;
+					}
+				}
+			}
+			ccounter = 0;
+
+		}
+		
+	}
 	glutPostRedisplay();
 }
 

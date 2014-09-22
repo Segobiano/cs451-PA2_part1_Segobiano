@@ -30,10 +30,15 @@ Point3d COM;        //center of mass
 //TODO: fill FFD_lattice in computeCOM_R() below
 vector<Point3d> FFD_lattice; //This stores all lattice nodes, FFD_lattice has size = (lattice_nx X lattice_ny X lattice_nz)
 vector <vector <vector <Point3d > > > BBmatrix;//3d Array of Nodes or clicking points
-
+double xmin;
+double xmax;
+double ymin;
+double ymax;
+double zmin;
+double zmax;
 
 //TODO: fill FFD_parameterization in parameterizeModel() below
-vector<Point3d> FFD_parameterization; //This stores all parameterized coordinates of all vertices from the model
+vector<vector<double>> FFD_parameterization; //This stores all parameterized coordinates of all vertices from the model
                                       //FFD_parameterization has size = models.front().v_size
 
 //-----------------------------------------------------------------------------
@@ -42,6 +47,14 @@ void computeCOM_R();
 void parameterizeModel();
 
 //-----------------------------------------------------------------------------
+
+unsigned int factorial(unsigned int n)
+{
+	if (n == 0)
+		return 1;
+	return n * factorial(n - 1);
+}
+
 bool parseArg(int argc, char ** argv)
 {
     for(int i=1;i<argc;i++){
@@ -116,12 +129,20 @@ void computeCOM_R()
         }//j
     }//i
 	//scales bounding box
+	
 	box[0] = box[0] * 1.2;
 	box[1] = box[1] * 1.2;
 	box[2] = box[2] * 1.2;
 	box[3] = box[3] * 1.2;
 	box[4] = box[4] * 1.2;
 	box[5] = box[5] * 1.2;
+	//tmin and maxs
+	xmin = box[0];
+	xmax = box[1];
+	ymin = box[2];
+	ymax = box[3];
+	zmin = box[4];
+	zmax = box[5];
 	//calculates the armount of space between nodes
 	double xspace = (abs(box[1] - box[0])) / (lattice_nx - 1);
 	double yspace = (abs(box[3] - box[2])) / (lattice_ny - 1);
@@ -183,17 +204,48 @@ void computeCOM_R()
 void parameterizeModel()
 {
 	model& m = models.front();
-
-	for (unsigned int i = 0; i < m.v_size; i++)
+	bool test = true;
+	//double prt = 0;
+	int pp = 0;
+	for (unsigned int z = 0; z < m.v_size; z++)
 	{
-		vertex & v = m.vertices[i];
-		
-		//TODO: convert v.p (the position of p) into the parameterized space using FFD_lattice
-		Point3d pc; //parameterized coordinate
+		double prt = 0;
+		vertex & v = m.vertices[z];
+		double pc;
+		double tz;
+		double ty;
+		double tx;
+		//tx/ty/tx for the current model vectex
+		tx = (v.p[0] - xmin) / (xmax - xmin);
+		ty = (v.p[1] - ymin) / (ymax - ymin);
+		tz = (v.p[2] - zmin) / (zmax - zmin);
+		vector<double> wvec;
+		//My data structure
+		for (int i = 0; i < BBmatrix.size(); i++){//z
+			for (int j = 0; j < BBmatrix[0].size(); j++){//y
+				for (int h = 0; h < BBmatrix[0][0].size(); h++){//x
+					int n_x = lattice_nx - 1;
+					int r_x = h;
+					int n_y = lattice_ny - 1;
+					int r_y = j;
+					int n_z = lattice_nz - 1;
+					int r_z = i;
+					//calculate the x y z componient then multpie them
+					double outputx = (factorial(n_x) / (factorial(r_x)*factorial(n_x - r_x)))*pow(tx, h)*pow((1 - tx), (n_x)-h);
+					double outputy = (factorial(n_y) / (factorial(r_y)*factorial(n_y - r_y)))*pow(ty, j)*pow((1 - ty), (n_y)-j);
+					double outputz = (factorial(n_z) / (factorial(r_z)*factorial(n_z - r_z)))*pow(tz, i)*pow((1 - tz), (n_z)-i);
 
-		FFD_parameterization.push_back(pc);
+					prt += outputx*outputy*outputz;
+					wvec.push_back(outputx*outputy*outputz);
+					//TODO: convert v.p (the position of p) into the parameterized space using FFD_lattice
+
+				}
+			}
+		}
+		//push the vector or lattice weights for this node
+		FFD_parameterization.push_back(wvec);
 	}
-	//end i
+	//end model loop
 
 	//done
 }
